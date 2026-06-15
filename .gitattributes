@@ -1,0 +1,21 @@
+# Normalise line endings to LF in the repository (Linux deploy target).
+# Working copies on Windows keep CRLF via core.autocrlf, but the stored
+# object always has LF so diffs and Docker builds stay clean.
+* text=auto eol=lf
+
+# Force LF for shell scripts and Python so they work in Docker without modification.
+*.sh    text eol=lf
+*.py    text eol=lf
+
+# Binary files — do not touch.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.pdf   binary
+*.zip   binary

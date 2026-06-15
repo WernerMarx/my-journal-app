@@ -1,0 +1,5 @@
+# Production dependencies. Install with:  pip install -r requirements/production.txt
+-r base.txt
+
+# --- Monitoring (optional, activated only when SENTRY_DSN is set) ---
+sentry-sdk~=2.20.0

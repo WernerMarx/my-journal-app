@@ -1,0 +1,28 @@
+[project]
+name = "development-template"
+version = "0.1.0"
+description = "Reusable Django REST API base template (custom user, email auth, JWT, Docker)."
+requires-python = ">=3.14"
+
+[tool.ruff]
+# Runtime is Python 3.14; this is only ruff's lint baseline (highest it supports).
+# Bump to py314 once a ruff release adds it.
+target-version = "py313"
+line-length = 100
+extend-exclude = ["migrations"]
+
+[tool.ruff.lint]
+# E/F: pyflakes+pycodestyle, I: isort, UP: pyupgrade, B: bugbear,
+# DJ: flake8-django, C4: comprehensions, SIM: simplify.
+select = ["E", "F", "I", "UP", "B", "DJ", "C4", "SIM"]
+ignore = [
+    "E501",  # line length is handled by the formatter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

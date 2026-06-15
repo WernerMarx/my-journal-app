@@ -1,0 +1,14 @@
+# Development dependencies. Install with:  pip install -r requirements/development.txt
+-r base.txt
+
+# --- Testing ---
+pytest~=8.3.0
+pytest-django~=4.9.0
+pytest-cov~=6.0.0
+factory-boy~=3.3.0
+faker~=33.1.0
+
+# --- Quality / tooling ---
+ruff~=0.9.0
+django-debug-toolbar~=4.4.0
+ipython~=8.31.0
