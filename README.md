@@ -2,11 +2,6 @@
 
 A private, single-user daily journal. **Django + DRF + SimpleJWT** backend, a
 **React + Axios** SPA frontend (`frontend/`), and **PostgreSQL** for storage.
-Built on top of a Django REST API base template; the journaling product is
-delivered in tracked phases.
-
-- Architectural & security decisions: [CLAUDE.md](CLAUDE.md)
-- Phased build plan with progress checkboxes: [PLAN.md](PLAN.md)
 
 ## What it does
 
@@ -78,8 +73,7 @@ Brings up `db` (Postgres 16), `redis` (7), `web` (gunicorn), and a Celery
 > **Tests run on PostgreSQL, not SQLite.** Search relies on Postgres-only
 > features (`pg_trgm`, full-text search, GIN indexes), so `pytest` needs a
 > reachable Postgres — running on SQLite would prove nothing. Use the compose
-> `db` service or a local instance. This is a deliberate deviation from the
-> template, which tested on SQLite.
+> `db` service or a local instance.
 
 ```powershell
 python -m pytest                 # full suite (needs Postgres)
@@ -95,8 +89,7 @@ Development is **test-driven**: the failing test is written before the code, and
 
 ## API surface
 
-Versioned under `/api/v1/`. **Status** shows what exists today (`now`, inherited
-from the template) versus the phase that delivers it (see [PLAN.md](PLAN.md)).
+Versioned under `/api/v1/`.
 
 | Method | Path | Purpose | Status |
 |---|---|---|---|
@@ -118,9 +111,7 @@ token comes from the login/refresh response body.
 
 ## Status & roadmap
 
-Built in phases, tracked with checkboxes in [PLAN.md](PLAN.md):
-
-- **P0** — foundations (rebrand, Postgres test DB, `pg_trgm`, cookie-mode JWT, `frontend/` scaffold, CI)
+- **P0** — foundations (Postgres test DB, `pg_trgm`, cookie-mode JWT, `frontend/` scaffold, CI)
 - **P1** — core journaling (one entry per day)
 - **P2** — trackers (default + custom typed fields)
 - **P3** — search (wildcard, date range, sort) — *core feature*
@@ -134,9 +125,8 @@ The body and title are stored as **searchable plaintext inside Postgres** so
 wildcard/full-text search works. Confidentiality is enforced at the perimeter —
 full-disk/volume encryption, **encrypted off-box backups**, and **strict
 no-content logging** (journal content is never written to logs, error responses,
-or Sentry). See [CLAUDE.md](CLAUDE.md) for the full threat model. The body is
-deliberately **not** field-encrypted; doing so would make it opaque to SQL and
-break search.
+or Sentry). The body is deliberately **not** field-encrypted; doing so would make
+it opaque to SQL and break search.
 
 ## Layout
 
