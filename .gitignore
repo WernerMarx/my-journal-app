@@ -47,3 +47,9 @@ coverage.xml
 *.swp
 .DS_Store
 Thumbs.db
+
+# --- CLAUDE ---
+CLAUDE.md
+PLAN.md
+.CLAUDE.md
+.PLAN.md

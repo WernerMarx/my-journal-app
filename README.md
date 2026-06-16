@@ -1,40 +1,66 @@
-# Django REST API Base Template
+# Private Journaling App
 
-A clone-and-go Django backend: custom email-based user model, DRF, SimpleJWT,
-environment-split settings, Celery, OpenAPI docs, pytest, and Docker. No
-domain logic — add your business apps on top.
+A private, single-user daily journal. **Django + DRF + SimpleJWT** backend, a
+**React + Axios** SPA frontend (`frontend/`), and **PostgreSQL** for storage.
+Built on top of a Django REST API base template; the journaling product is
+delivered in tracked phases.
 
-See [CLAUDE.md](CLAUDE.md) for architectural decisions and [PLAN.md](PLAN.md) for
-the full blueprint.
+- Architectural & security decisions: [CLAUDE.md](CLAUDE.md)
+- Phased build plan with progress checkboxes: [PLAN.md](PLAN.md)
+
+## What it does
+
+- **One entry per day** — title, body, journal date, and audit timestamps;
+  editable and saved to Postgres.
+- **Trackers** — seeded defaults (worked out, mood, diet) plus user-defined custom
+  fields of several types (text, integer, float, boolean, option).
+- **Attachments** — images now (compressed on upload), video and documents later.
+- **Powerful search** — wildcard syntax over title and body (`*this*` contains,
+  `this*` prefix, bare word, phrase), with date-range filters and sort.
+- **Dashboard** — entry counts, last entry, and a month calendar with a per-day
+  mood spectrum (0.00 red → 10.00 green).
 
 ## Stack
 
-- **Python 3.14**, **Django 5.2 LTS**, **Django REST Framework**
-- **Auth**: Django-owned. `apps.users.User` (email login, no username),
-  `dj-rest-auth` + `allauth` for account flows, **SimpleJWT** as the single API
-  token system (Bearer header). `allauth.socialaccount` is wired for future
-  Google/Microsoft providers; no provider is enabled yet.
-- **PostgreSQL** (psycopg 3), **Celery + Redis**, **drf-spectacular** docs
-- **Settings** split: `config/settings/{base,development,production,test}.py`,
-  selected by `DJANGO_SETTINGS_MODULE`.
+- **Python 3.14**, **Django 5.2 LTS**, **Django REST Framework**, **psycopg 3**
+- **PostgreSQL** (search uses `pg_trgm` + full-text; not optional)
+- **Celery + Redis** for async media compression
+- **React + Axios** SPA in `frontend/`
+- **drf-spectacular** OpenAPI schema + docs
+- Settings split: `config/settings/{base,development,production,test}.py`,
+  selected by `DJANGO_SETTINGS_MODULE`
+
+## Authentication & tokens
+
+- Django-owned auth; **SimpleJWT** is the single API token system.
+- **Refresh token** in an **HttpOnly, Secure, `SameSite=Strict` cookie**
+  (dj-rest-auth cookie mode). **Access token** is returned in the response body
+  and held **only in JS memory**, sent as `Authorization: Bearer`. There is **no
+  access-token cookie**.
+- The Axios interceptor performs silent refresh against the cookie; access ~5 min,
+  refresh rotation + blacklist on; CSRF protection on the cookie endpoints.
+- **Single-user / manually-provisioned accounts.** Public registration is
+  **disabled in production**; accounts are created via `createsuperuser` or a
+  management command. Mandatory MFA (TOTP/passkey) is added in the hardening phase.
 
 ## Quick start (local, no Docker)
 
-```powershell
-py -3.14 -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements/development.txt
+The virtualenv and dependencies are already set up. You need a reachable Postgres.
 
-Copy-Item .env.example .env      # then edit values as needed
+```powershell
+Copy-Item .env.example .env          # then edit values (DATABASE_URL, SECRET_KEY, ...)
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py createsuperuser     # the single account
 python manage.py runserver
 ```
 
-`manage.py` defaults `DJANGO_SETTINGS_MODULE` to `config.settings.development`.
+Frontend (in a second terminal):
 
-> Local dev expects a reachable Postgres (see `DATABASE_URL`). The **test**
-> settings use in-memory SQLite, so `pytest` runs with no database server.
+```powershell
+cd frontend; npm install; npm run dev
+```
+
+`manage.py` defaults `DJANGO_SETTINGS_MODULE` to `config.settings.development`.
 
 ## Quick start (Docker)
 
@@ -45,64 +71,85 @@ docker compose run --rm web python manage.py createsuperuser
 ```
 
 Brings up `db` (Postgres 16), `redis` (7), `web` (gunicorn), and a Celery
-`worker`. The web container waits for the DB, migrates, and collects static on
-start.
+`worker`. The web container waits for the DB, migrates, and collects static.
 
 ## Tests & quality
 
+> **Tests run on PostgreSQL, not SQLite.** Search relies on Postgres-only
+> features (`pg_trgm`, full-text search, GIN indexes), so `pytest` needs a
+> reachable Postgres — running on SQLite would prove nothing. Use the compose
+> `db` service or a local instance. This is a deliberate deviation from the
+> template, which tested on SQLite.
+
 ```powershell
-python -m pytest                 # full suite (SQLite, no server needed)
-python -m pytest -k users        # subset
+python -m pytest                 # full suite (needs Postgres)
+python -m pytest -k journal      # subset
 python -m pytest --cov           # coverage
 
 python -m ruff check .           # lint
 python -m ruff format .          # format
 ```
 
+Development is **test-driven**: the failing test is written before the code, and
+`pytest` is green before a phase is considered done.
+
 ## API surface
 
-Versioned under `/api/v1/`.
+Versioned under `/api/v1/`. **Status** shows what exists today (`now`, inherited
+from the template) versus the phase that delivers it (see [PLAN.md](PLAN.md)).
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET`  | `/api/v1/health/` | Liveness probe (no auth) |
-| `POST` | `/api/v1/auth/registration/` | Register (email + password) |
-| `POST` | `/api/v1/auth/login/` | Obtain JWT access/refresh |
-| `POST` | `/api/v1/auth/logout/` | Logout / blacklist refresh |
-| `POST` | `/api/v1/auth/token/refresh/` | Refresh access token |
-| `POST` | `/api/v1/auth/password/reset/` | Start password reset |
-| `GET`/`PATCH` | `/api/v1/users/me/` | Current user details |
-| `GET`  | `/api/schema/` | OpenAPI schema |
-| `GET`  | `/api/docs/` · `/api/redoc/` | Swagger UI · Redoc |
+| Method | Path | Purpose | Status |
+|---|---|---|---|
+| GET | `/health/` | liveness probe (no auth) | now |
+| POST | `/auth/login/` · `/auth/logout/` · `/auth/token/refresh/` | cookie-mode JWT | P0 |
+| POST | `/auth/password/reset/` | start password reset | now |
+| GET/PATCH | `/users/me/` | current user | now |
+| GET/POST | `/entries/` | list / create entries | P1 |
+| GET/PUT/PATCH/DELETE | `/entries/{date}/` | a day's entry | P1 |
+| GET/POST/PATCH/DELETE | `/trackers/` · `/trackers/{id}/` | manage tracker definitions | P2 |
+| PUT | `/entries/{date}/trackers/` | set tracker values for a day | P2 |
+| GET | `/search/?q=...&date_from=&date_to=&sort=` | wildcard search + range/sort | P3 |
+| GET/POST/DELETE | `/entries/{date}/attachments/` | media per day | P4 |
+| GET | `/dashboard/` | counts, last entry, month mood map | P5 |
+| GET | `/api/schema/` · `/api/docs/` · `/api/redoc/` | OpenAPI schema · Swagger · Redoc | now |
 
-Authenticate API requests with `Authorization: Bearer <access_token>`.
+Authenticate API requests with `Authorization: Bearer <access_token>`; the access
+token comes from the login/refresh response body.
 
-### Email verification
+## Status & roadmap
 
-Controlled per-environment via `ACCOUNT_EMAIL_VERIFICATION`:
+Built in phases, tracked with checkboxes in [PLAN.md](PLAN.md):
 
-- **development / test** → `optional`: registration returns JWTs immediately.
-- **production** → `mandatory`: registration returns a "verify your email"
-  response and **withholds** tokens until the address is confirmed and the user
-  logs in.
+- **P0** — foundations (rebrand, Postgres test DB, `pg_trgm`, cookie-mode JWT, `frontend/` scaffold, CI)
+- **P1** — core journaling (one entry per day)
+- **P2** — trackers (default + custom typed fields)
+- **P3** — search (wildcard, date range, sort) — *core feature*
+- **P4** — attachments (images first, compressed)
+- **P5** — dashboard landing page
+- **P6** — security & production hardening (MFA, lockout, throttling, Nginx, encrypted backups + tested restore, monitoring)
+
+## Security note
+
+The body and title are stored as **searchable plaintext inside Postgres** so
+wildcard/full-text search works. Confidentiality is enforced at the perimeter —
+full-disk/volume encryption, **encrypted off-box backups**, and **strict
+no-content logging** (journal content is never written to logs, error responses,
+or Sentry). See [CLAUDE.md](CLAUDE.md) for the full threat model. The body is
+deliberately **not** field-encrypted; doing so would make it opaque to SQL and
+break search.
 
 ## Layout
 
 ```
 config/            settings split, root urls, asgi/wsgi, celery
-apps/core/         shared base models, pagination, health check
-apps/users/        custom user, manager, auth serializers/views, admin
-tests/             pytest suite (mirrors apps/)
+apps/
+  core/            shared base models, pagination, health check
+  users/           custom user, manager, cookie-mode JWT auth
+  journal/         Entry model, entry CRUD, search, dashboard aggregations
+  trackers/        Tracker definitions + TrackerValue (EAV)
+  attachments/     media upload + async compression
+frontend/          React + Axios SPA
+tests/             pytest suite (Postgres), mirrors apps/
 requirements/      base / development / production
 docker/            entrypoint
 ```
-
-## Adding an app
-
-```powershell
-python manage.py startapp myapp apps\myapp   # create the package first
-```
-
-Set its `AppConfig.name` to `apps.myapp` (with a short `label`), add
-`"apps.myapp"` to `LOCAL_APPS` in `config/settings/base.py`, and mount its
-`urls.py` under `/api/v1/` in `config/urls.py`.
