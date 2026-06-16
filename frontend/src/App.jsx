@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./contexts/AuthContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import ManageTrackers from "./pages/ManageTrackers";
 
 function PrivateRoute({ children }) {
   const { user, ready } = useAuth();
@@ -18,6 +19,14 @@ export default function App() {
         element={
           <PrivateRoute>
             <Home />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/trackers"
+        element={
+          <PrivateRoute>
+            <ManageTrackers />
           </PrivateRoute>
         }
       />

@@ -5,6 +5,19 @@ from rest_framework import serializers
 from apps.journal.models import Entry
 
 
+class SearchResultSerializer(serializers.Serializer):
+    """Read-only representation of a search result row.
+
+    ``rank`` is None for browse-mode queries (no FTS), a float for FTS queries.
+    ``snippet`` is the SearchHeadline excerpt (FTS) or the first 200 chars of body.
+    """
+
+    date = serializers.DateField()
+    title = serializers.CharField()
+    snippet = serializers.CharField()
+    rank = serializers.FloatField(allow_null=True)
+
+
 class EntrySerializer(serializers.ModelSerializer):
     """Read/write representation of an entry.
 

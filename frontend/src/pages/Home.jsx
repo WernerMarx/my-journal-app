@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { todayISO } from "../api/entries";
 import EntryEditor from "../components/EntryEditor";
 import RecentEntries from "../components/RecentEntries";
@@ -21,11 +22,10 @@ export default function Home() {
         }}
       >
         <h1 style={{ margin: 0 }}>Journal</h1>
-        <div style={{ color: "#555" }}>
-          {user?.email}
-          <button onClick={signOut} style={{ marginLeft: 12 }}>
-            Sign out
-          </button>
+        <div style={{ color: "#555", display: "flex", alignItems: "center", gap: 12 }}>
+          <Link to="/trackers">Manage trackers</Link>
+          <span>{user?.email}</span>
+          <button onClick={signOut}>Sign out</button>
         </div>
       </header>
 

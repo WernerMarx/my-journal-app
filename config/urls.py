@@ -28,6 +28,7 @@ urlpatterns = [
     ),  # register/verify-email
     path("api/v1/users/", include("apps.users.urls")),  # users:me
     path("api/v1/", include("apps.journal.urls")),  # journal:entry-*
+    path("api/v1/", include("apps.trackers.urls")),  # trackers:tracker-* + entry-trackers
     # OpenAPI schema + docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),

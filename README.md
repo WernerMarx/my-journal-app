@@ -114,13 +114,14 @@ token comes from the login/refresh response body.
 
 ## Status & roadmap
 
-- **P0** — foundations (Postgres test DB, `pg_trgm`, cookie-mode JWT, `frontend/` scaffold, CI)
-- **P1** — core journaling (one entry per day)
-- **P2** — trackers (default + custom typed fields)
-- **P3** — search (wildcard, date range, sort) — *core feature*
-- **P4** — attachments (images first, compressed)
-- **P5** — dashboard landing page
-- **P6** — security & production hardening (MFA, lockout, throttling, Nginx, encrypted backups + tested restore, monitoring)
+- **P0** ✅ — foundations (Postgres test DB, `pg_trgm`, cookie-mode JWT, `frontend/` scaffold, CI)
+- **P1** ✅ — core journaling (one entry per day)
+- **P2** ✅ — trackers (default + custom typed fields; tracker widgets in editor; manage-trackers page)
+- **P3** ✅ — search (wildcard, date range, sort) — *core feature*
+- **P4** — attachments (images first, compressed via Celery/Pillow)
+- **P5** — frontend experience (Write page, Browse/list page, Entry detail page, nav bar)
+- **P6** — dashboard (mood calendar, entry counts, landing page)
+- **P7** — security & production hardening (MFA, lockout, throttling, Nginx, encrypted backups + tested restore, monitoring)
 
 ## Security note
 

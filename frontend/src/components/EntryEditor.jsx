@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createEntry, getEntry, updateEntry } from "../api/entries";
+import TrackerInputs from "./TrackerInputs";
 
 /**
  * Loads the entry for `date` (or starts a blank one if none exists yet), lets
- * the user edit title + body, and saves — POST when new, PATCH when it exists.
+ * the user edit title + body + trackers, and saves — POST when new, PATCH when
+ * it exists. Tracker values are PUT after the entry is ensured to exist (their
+ * endpoint requires the entry), so one Save button persists everything.
  */
 export default function EntryEditor({ date, onSaved }) {
   const [title, setTitle] = useState("");
@@ -12,6 +15,7 @@ export default function EntryEditor({ date, onSaved }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const trackersRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -55,6 +59,8 @@ export default function EntryEditor({ date, onSaved }) {
         await createEntry({ date, title, body });
         setExists(true);
       }
+      // Entry now exists — persist tracker values for the day.
+      await trackersRef.current?.save();
       onSaved?.();
     } catch {
       setError("Could not save. Please try again.");
@@ -87,6 +93,7 @@ export default function EntryEditor({ date, onSaved }) {
         rows={16}
         style={{ ...field, marginTop: 12, resize: "vertical" }}
       />
+      <TrackerInputs ref={trackersRef} date={date} />
       {error && <p style={{ color: "red" }}>{error}</p>}
       <button onClick={handleSave} disabled={saving} style={{ marginTop: 12, padding: "8px 20px" }}>
         {saving ? "Saving…" : "Save"}

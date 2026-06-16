@@ -36,3 +36,28 @@ class EntryFactory(factory.django.DjangoModelFactory):
     date = factory.Sequence(lambda n: date(2026, 1, 1) + timedelta(days=n))
     title = factory.Faker("sentence", nb_words=4)
     body = factory.Faker("paragraph")
+
+
+class TrackerFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "trackers.Tracker"
+
+    user = factory.SubFactory(UserFactory)
+    key = factory.Sequence(lambda n: f"tracker_{n}")
+    name = factory.Sequence(lambda n: f"Tracker {n}")
+    data_type = "TEXT"
+    config = factory.LazyFunction(dict)
+    is_system = False
+    is_active = True
+    order = factory.Sequence(lambda n: n)
+
+
+class TrackerValueFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "trackers.TrackerValue"
+
+    entry = factory.SubFactory(EntryFactory)
+    tracker = factory.SubFactory(TrackerFactory)
+    value_text = None
+    value_number = None
+    value_bool = None
