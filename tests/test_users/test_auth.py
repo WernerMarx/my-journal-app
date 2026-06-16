@@ -109,6 +109,25 @@ def test_login_with_wrong_password_fails(api_client, user):
     assert response.status_code == 400
 
 
+def test_existing_django_session_does_not_force_csrf_on_api(user):
+    """Regression: a Django admin session in the same browser must NOT make the
+    JWT API enforce CSRF on login. The API is stateless (JWT/Bearer only, no
+    SessionAuthentication), so a stray session cookie is simply ignored."""
+    from rest_framework.test import APIClient
+
+    client = APIClient(enforce_csrf_checks=True)
+    client.force_login(user)  # mimics being logged into /admin/ in the same browser
+
+    response = client.post(
+        reverse(LOGIN_URL),
+        {"email": "user@example.com", "password": "testpass123!"},
+        format="json",
+    )
+
+    assert response.status_code == 200
+    assert "access" in response.data
+
+
 # ---------------------------------------------------------------------------
 # Token refresh (cookie-based)
 # ---------------------------------------------------------------------------

@@ -47,7 +47,13 @@ apiClient.interceptors.response.use(
   async (error) => {
     const original = error.config;
 
-    if (error.response?.status !== 401 || original._retried) {
+    // Don't try to refresh on a non-401, an already-retried request, or the
+    // refresh call itself (its own 401 must not trigger another refresh).
+    if (
+      error.response?.status !== 401 ||
+      original._retried ||
+      original.url?.includes("/auth/token/refresh/")
+    ) {
       return Promise.reject(error);
     }
 

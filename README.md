@@ -33,7 +33,10 @@ A private, single-user daily journal. **Django + DRF + SimpleJWT** backend, a
   and held **only in JS memory**, sent as `Authorization: Bearer`. There is **no
   access-token cookie**.
 - The Axios interceptor performs silent refresh against the cookie; access ~5 min,
-  refresh rotation + blacklist on; CSRF protection on the cookie endpoints.
+  refresh rotation + blacklist on. Because the API is stateless JWT-only (no
+  `SessionAuthentication`) and the refresh cookie is used only by the refresh/logout
+  endpoints, CSRF exposure is limited to those endpoints, with `SameSite=Strict` as
+  the primary protection for the refresh cookie.
 - **Single-user / manually-provisioned accounts.** Public registration is
   **disabled in production**; accounts are created via `createsuperuser` or a
   management command. Mandatory MFA (TOTP/passkey) is added in the hardening phase.

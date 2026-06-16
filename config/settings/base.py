@@ -55,6 +55,7 @@ THIRD_PARTY_APPS = [
 LOCAL_APPS = [
     "apps.core",
     "apps.users",
+    "apps.journal",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -153,8 +154,12 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@example.com")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        # Stateless API: JWT (Bearer) only. SessionAuthentication is deliberately
+        # NOT included — it would make any Django session (e.g. an open /admin/
+        # login in the same browser) trigger CSRF enforcement on every API call.
+        # The admin uses its own session auth; Swagger UI (/api/docs/) drives the
+        # API with a Bearer token.
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",  # admin / browsable API
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -174,8 +179,12 @@ SIMPLE_JWT = {
 
 # dj-rest-auth — cookie-mode JWT.
 # Access token:  returned in the response body; no access-token cookie.
-# Refresh token: HttpOnly, Secure, SameSite=Strict cookie named 'refresh'.
-# JWT_AUTH_SECURE is False here and overridden to True in production.py.
+# Refresh token: HttpOnly, Secure (prod), SameSite=Strict cookie named 'refresh'.
+# The refresh cookie is used only by the refresh/logout endpoints, so CSRF exposure
+# is confined to those cookie-bearing endpoints; SameSite=Strict is the primary CSRF
+# protection for it (the browser won't attach it on cross-site requests). Token-based
+# CSRF would only apply via JWTCookieAuthentication + an access cookie, which we
+# deliberately do not use. JWT_AUTH_SECURE -> True in production.
 REST_AUTH = {
     "USE_JWT": True,
     "JWT_AUTH_COOKIE": None,  # no access-token cookie
@@ -183,7 +192,6 @@ REST_AUTH = {
     "JWT_AUTH_HTTPONLY": True,
     "JWT_AUTH_SAMESITE": "Strict",
     "JWT_AUTH_SECURE": False,  # overridden to True in production.py
-    "JWT_AUTH_COOKIE_USE_CSRF": True,  # CSRF protection on cookie endpoints
     "SESSION_LOGIN": False,
     "TOKEN_MODEL": None,  # JWT-only: no DRF authtoken table
     "REGISTER_SERIALIZER": "apps.users.serializers.RegisterSerializer",

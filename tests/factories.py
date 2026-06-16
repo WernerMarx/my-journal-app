@@ -1,5 +1,7 @@
 """factory-boy factories for the test suite."""
 
+from datetime import date, timedelta
+
 import factory
 from django.contrib.auth import get_user_model
 
@@ -22,3 +24,15 @@ class UserFactory(factory.django.DjangoModelFactory):
         self.set_password(password)
         if create:
             self.save()
+
+
+class EntryFactory(factory.django.DjangoModelFactory):
+    # String model reference so importing this module does not require the
+    # journal app to be importable yet (keeps red phases localized).
+    class Meta:
+        model = "journal.Entry"
+
+    user = factory.SubFactory(UserFactory)
+    date = factory.Sequence(lambda n: date(2026, 1, 1) + timedelta(days=n))
+    title = factory.Faker("sentence", nb_words=4)
+    body = factory.Faker("paragraph")
