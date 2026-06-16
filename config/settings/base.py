@@ -46,6 +46,7 @@ THIRD_PARTY_APPS = [
     "allauth.socialaccount",
     # "allauth.socialaccount.providers.google",
     # "allauth.socialaccount.providers.microsoft",
+    # allauth.mfa goes here in Phase 6 (requires: pip install django-allauth[mfa]).
     "corsheaders",
     "drf_spectacular",
     "django_filters",
@@ -171,12 +172,18 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# dj-rest-auth — issue SimpleJWT, header transport (HttpOnly-cookie mode left off).
+# dj-rest-auth — cookie-mode JWT.
+# Access token:  returned in the response body; no access-token cookie.
+# Refresh token: HttpOnly, Secure, SameSite=Strict cookie named 'refresh'.
+# JWT_AUTH_SECURE is False here and overridden to True in production.py.
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_HTTPONLY": False,  # cookie mode wired-but-off; Bearer header is the default
-    "JWT_AUTH_COOKIE": None,
-    "JWT_AUTH_REFRESH_COOKIE": None,
+    "JWT_AUTH_COOKIE": None,  # no access-token cookie
+    "JWT_AUTH_REFRESH_COOKIE": "refresh",  # refresh token in HttpOnly cookie
+    "JWT_AUTH_HTTPONLY": True,
+    "JWT_AUTH_SAMESITE": "Strict",
+    "JWT_AUTH_SECURE": False,  # overridden to True in production.py
+    "JWT_AUTH_COOKIE_USE_CSRF": True,  # CSRF protection on cookie endpoints
     "SESSION_LOGIN": False,
     "TOKEN_MODEL": None,  # JWT-only: no DRF authtoken table
     "REGISTER_SERIALIZER": "apps.users.serializers.RegisterSerializer",
@@ -184,8 +191,8 @@ REST_AUTH = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Development Template API",
-    "DESCRIPTION": "Django REST API base template.",
+    "TITLE": "Private Journal API",
+    "DESCRIPTION": "Personal daily journaling application.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/api/v1",

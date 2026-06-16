@@ -1,19 +1,21 @@
-"""Test settings: fast and hermetic. Used by pytest (see pytest.ini)."""
+"""Test settings: fast and hermetic. Used by pytest (see pytest.ini).
+
+Database: PostgreSQL, not SQLite. Search relies on Postgres-only features
+(pg_trgm, SearchVectorField, GIN indexes), so the test suite must run against
+a real Postgres instance. pytest-django creates and destroys 'test_<dbname>'
+automatically using the DATABASE_URL from the environment.
+
+Local: ensure DATABASE_URL in .env points to a reachable Postgres instance.
+CI: the workflow provides a Postgres service and sets DATABASE_URL.
+"""
 
 from .base import *  # noqa: F403
 
 DEBUG = False
 ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
 
-# In-memory SQLite so the suite runs out-of-the-box without a Postgres server.
-# The template uses no Postgres-specific SQL; CI/Docker still exercises Postgres
-# through the development/production settings.
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ":memory:",
-    }
-}
+# Inherits DATABASES from base.py (reads DATABASE_URL); pytest-django creates
+# test_<dbname> automatically. No SQLite override.
 
 # Fast password hashing for the test suite.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

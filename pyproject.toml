@@ -1,7 +1,7 @@
 [project]
-name = "development-template"
+name = "my-journal-app"
 version = "0.1.0"
-description = "Reusable Django REST API base template (custom user, email auth, JWT, Docker)."
+description = "Private daily journaling application (Django + DRF + React)."
 requires-python = ">=3.14"
 
 [tool.ruff]

@@ -3,7 +3,7 @@
 import sentry_sdk
 
 from .base import *  # noqa: F403
-from .base import env
+from .base import REST_AUTH, env
 
 DEBUG = False
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
@@ -30,6 +30,9 @@ STORAGES = {
 
 # --- CORS: explicit allowlist only ---
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+
+# --- JWT cookie: Secure flag must be True in production (HTTPS only) ---
+REST_AUTH = {**REST_AUTH, "JWT_AUTH_SECURE": True}
 
 # --- Security headers ---
 SECURE_SSL_REDIRECT = True

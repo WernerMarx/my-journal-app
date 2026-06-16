@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main, prod]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (lint + test + audit)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DJANGO_SETTINGS_MODULE: config.settings.test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/app
+      SECRET_KEY: ci-secret-key-not-used-in-production
+      REDIS_URL: redis://localhost:6379/0
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          allow-prereleases: true
+
+      - name: Install dependencies
+        run: pip install -r requirements/development.txt
+
+      - name: Lint — ruff check
+        run: python -m ruff check .
+
+      - name: Format — ruff format
+        run: python -m ruff format --check .
+
+      - name: Test — pytest (Postgres)
+        run: python -m pytest --cov --tb=short
+
+      - name: Audit — pip-audit
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements/base.txt
+
+  frontend:
+    name: Frontend (audit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit — npm audit
+        run: npm audit --audit-level=high
