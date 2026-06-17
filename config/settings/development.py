@@ -16,6 +16,11 @@ ACCOUNT_EMAIL_VERIFICATION = "optional"
 # --- CORS: permissive locally ---
 CORS_ALLOW_ALL_ORIGINS = True
 
+# --- Celery: run tasks synchronously in-process so Redis is not required locally.
+# Remove these two lines if you want to run a real Celery worker (needs Redis).
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
+
 # --- django-debug-toolbar ---
 INSTALLED_APPS += ["debug_toolbar"]
 MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")

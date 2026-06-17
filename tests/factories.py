@@ -1,9 +1,12 @@
 """factory-boy factories for the test suite."""
 
+import io
 from datetime import date, timedelta
 
 import factory
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from PIL import Image as PILImage
 
 User = get_user_model()
 
@@ -61,3 +64,26 @@ class TrackerValueFactory(factory.django.DjangoModelFactory):
     value_text = None
     value_number = None
     value_bool = None
+
+
+def _small_jpeg() -> bytes:
+    buf = io.BytesIO()
+    PILImage.new("RGB", (50, 50), color=(200, 100, 50)).save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+class AttachmentFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = "attachments.Attachment"
+
+    entry = factory.SubFactory(EntryFactory)
+
+    @factory.lazy_attribute
+    def file(self):
+        return SimpleUploadedFile("test.jpg", _small_jpeg(), content_type="image/jpeg")
+
+    media_type = "IMAGE"
+    original_name = "test.jpg"
+    size = factory.LazyFunction(lambda: len(_small_jpeg()))
+    content_type = "image/jpeg"
+    is_processed = True

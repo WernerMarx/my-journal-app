@@ -6,6 +6,7 @@ drf-spectacular.
 """
 
 from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import (
@@ -29,6 +30,7 @@ urlpatterns = [
     path("api/v1/users/", include("apps.users.urls")),  # users:me
     path("api/v1/", include("apps.journal.urls")),  # journal:entry-*
     path("api/v1/", include("apps.trackers.urls")),  # trackers:tracker-* + entry-trackers
+    path("api/v1/", include("apps.attachments.urls")),  # attachments:attachment-*
     # OpenAPI schema + docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
@@ -39,3 +41,4 @@ if settings.DEBUG:
     import debug_toolbar
 
     urlpatterns += [path("__debug__/", include(debug_toolbar.urls))]
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -57,6 +57,7 @@ LOCAL_APPS = [
     "apps.users",
     "apps.journal",
     "apps.trackers",
+    "apps.attachments",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -142,8 +143,17 @@ STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "mediafiles"
+
+# Attachment upload constraints (server-side; Nginx should mirror the size limit).
+ATTACHMENT_MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
+ATTACHMENT_ALLOWED_CONTENT_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

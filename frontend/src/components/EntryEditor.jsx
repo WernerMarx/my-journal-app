@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createEntry, getEntry, updateEntry } from "../api/entries";
+import AttachmentGallery from "./AttachmentGallery";
 import TrackerInputs from "./TrackerInputs";
 
 /**
@@ -94,6 +95,7 @@ export default function EntryEditor({ date, onSaved }) {
         style={{ ...field, marginTop: 12, resize: "vertical" }}
       />
       <TrackerInputs ref={trackersRef} date={date} />
+      <AttachmentGallery date={date} entryExists={exists} />
       {error && <p style={{ color: "red" }}>{error}</p>}
       <button onClick={handleSave} disabled={saving} style={{ marginTop: 12, padding: "8px 20px" }}>
         {saving ? "Saving…" : "Save"}
