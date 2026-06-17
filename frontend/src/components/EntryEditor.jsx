@@ -9,19 +9,25 @@ import TrackerInputs from "./TrackerInputs";
  * it exists. Tracker values are PUT after the entry is ensured to exist (their
  * endpoint requires the entry), so one Save button persists everything.
  */
-export default function EntryEditor({ date, onSaved }) {
+export default function EntryEditor({ date, onSaved, onDirtyChange }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [exists, setExists] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [dirty, setDirty] = useState(false);
   const trackersRef = useRef(null);
+
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError(null);
+    setDirty(false);
 
     getEntry(date)
       .then((entry) => {
@@ -62,6 +68,7 @@ export default function EntryEditor({ date, onSaved }) {
       }
       // Entry now exists — persist tracker values for the day.
       await trackersRef.current?.save();
+      setDirty(false);
       onSaved?.();
     } catch {
       setError("Could not save. Please try again.");
@@ -83,13 +90,13 @@ export default function EntryEditor({ date, onSaved }) {
       <input
         type="text"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => { setTitle(e.target.value); setDirty(true); }}
         placeholder="Title"
         style={field}
       />
       <textarea
         value={body}
-        onChange={(e) => setBody(e.target.value)}
+        onChange={(e) => { setBody(e.target.value); setDirty(true); }}
         placeholder="Write your entry…"
         rows={16}
         style={{ ...field, marginTop: 12, resize: "vertical" }}

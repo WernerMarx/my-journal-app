@@ -29,3 +29,16 @@ export function todayISO() {
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 }
+
+/** Shift a YYYY-MM-DD date string by `delta` calendar days, returning YYYY-MM-DD.
+ * Parsed at local midday so DST shifts can't tip the result onto an adjacent day. */
+export function addDays(iso, delta) {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + delta);
+  return todayISOFrom(d);
+}
+
+function todayISOFrom(date) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+}

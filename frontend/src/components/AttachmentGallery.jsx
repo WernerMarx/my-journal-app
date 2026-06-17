@@ -5,7 +5,7 @@ import { deleteAttachment, listAttachments, uploadAttachment } from "../api/atta
  * Displays the image gallery for a given entry date and provides an upload button.
  * Only active when the entry already exists (entryExists=true); otherwise shows a hint.
  */
-export default function AttachmentGallery({ date, entryExists }) {
+export default function AttachmentGallery({ date, entryExists, readOnly = false }) {
   const [attachments, setAttachments] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -90,6 +90,7 @@ export default function AttachmentGallery({ date, entryExists }) {
   };
 
   if (!entryExists) {
+    if (readOnly) return null;
     return (
       <p style={{ marginTop: 12, color: "#aaa", fontSize: 13 }}>
         Save the entry first to add photos.
@@ -101,20 +102,24 @@ export default function AttachmentGallery({ date, entryExists }) {
     <div style={container}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <strong style={{ fontSize: 14 }}>Photos</strong>
-        <button
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          style={{ padding: "3px 10px", fontSize: 13 }}
-        >
-          {uploading ? "Uploading…" : "+ Add"}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/jpeg,image/png,image/gif,image/webp"
-          style={{ display: "none" }}
-          onChange={handleFileChange}
-        />
+        {!readOnly && (
+          <>
+            <button
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              style={{ padding: "3px 10px", fontSize: 13 }}
+            >
+              {uploading ? "Uploading…" : "+ Add"}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
+          </>
+        )}
       </div>
 
       {error && <p style={{ color: "red", fontSize: 13, marginTop: 4 }}>{error}</p>}
@@ -130,9 +135,11 @@ export default function AttachmentGallery({ date, entryExists }) {
               ) : (
                 <div style={processing}>processing…</div>
               )}
-              <button style={deleteBtn} onClick={() => handleDelete(att)} title="Remove">
-                ✕
-              </button>
+              {!readOnly && (
+                <button style={deleteBtn} onClick={() => handleDelete(att)} title="Remove">
+                  ✕
+                </button>
+              )}
             </div>
           ))}
         </div>
