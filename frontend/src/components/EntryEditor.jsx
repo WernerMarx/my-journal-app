@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import { Save } from "lucide-react";
 import { createEntry, getEntry, updateEntry } from "../api/entries";
 import AttachmentGallery from "./AttachmentGallery";
 import TrackerInputs from "./TrackerInputs";
+import ErrorState from "./ui-kit/ErrorState";
+import { Button } from "./ui/button";
+import { Separator } from "./ui/separator";
+import { Skeleton } from "./ui/skeleton";
 
 /**
- * Loads the entry for `date` (or starts a blank one if none exists yet), lets
- * the user edit title + body + trackers, and saves — POST when new, PATCH when
- * it exists. Tracker values are PUT after the entry is ensured to exist (their
- * endpoint requires the entry), so one Save button persists everything.
+ * Loads the entry for `date`, lets the user edit title + body + trackers,
+ * and saves. All API logic is unchanged — only the layout has been redesigned
+ * as a document-style writing surface.
  */
 export default function EntryEditor({ date, onSaved, onDirtyChange }) {
   const [title, setTitle] = useState("");
@@ -39,7 +43,6 @@ export default function EntryEditor({ date, onSaved, onDirtyChange }) {
       .catch((err) => {
         if (!active) return;
         if (err.response?.status === 404) {
-          // No entry for this day yet — start a fresh one.
           setTitle("");
           setBody("");
           setExists(false);
@@ -47,13 +50,9 @@ export default function EntryEditor({ date, onSaved, onDirtyChange }) {
           setError("Could not load this entry.");
         }
       })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+      .finally(() => { if (active) setLoading(false); });
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [date]);
 
   async function handleSave() {
@@ -66,7 +65,6 @@ export default function EntryEditor({ date, onSaved, onDirtyChange }) {
         await createEntry({ date, title, body });
         setExists(true);
       }
-      // Entry now exists — persist tracker values for the day.
       await trackersRef.current?.save();
       setDirty(false);
       onSaved?.();
@@ -77,36 +75,75 @@ export default function EntryEditor({ date, onSaved, onDirtyChange }) {
     }
   }
 
-  if (loading) return <p>Loading…</p>;
-
-  const field = { width: "100%", padding: 8, marginTop: 4, boxSizing: "border-box" };
+  if (loading) {
+    return (
+      <div className="bg-card border border-border rounded-xl shadow-sm px-8 py-8 space-y-4">
+        <Skeleton className="h-8 w-1/3" />
+        <Separator />
+        <div className="space-y-2.5">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-4/6" />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h2 style={{ marginTop: 0 }}>
-        {date}
-        {!exists && <span style={{ fontWeight: 400, color: "#888" }}> · new</span>}
-      </h2>
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => { setTitle(e.target.value); setDirty(true); }}
-        placeholder="Title"
-        style={field}
-      />
-      <textarea
-        value={body}
-        onChange={(e) => { setBody(e.target.value); setDirty(true); }}
-        placeholder="Write your entry…"
-        rows={16}
-        style={{ ...field, marginTop: 12, resize: "vertical" }}
-      />
-      <TrackerInputs ref={trackersRef} date={date} />
-      <AttachmentGallery date={date} entryExists={exists} />
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      <button onClick={handleSave} disabled={saving} style={{ marginTop: 12, padding: "8px 20px" }}>
-        {saving ? "Saving…" : "Save"}
-      </button>
+    <div className="space-y-4">
+      {/* ── Writing surface ── */}
+      <div className="bg-card border border-border rounded-xl shadow-sm">
+        <div className="px-8 pt-7 pb-1">
+          {!exists && (
+            <span className="inline-flex items-center text-xs font-medium text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full mb-4">
+              New entry
+            </span>
+          )}
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => { setTitle(e.target.value); setDirty(true); }}
+            placeholder="Title"
+            className="w-full bg-transparent border-none p-0 font-serif text-2xl font-semibold text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 focus:shadow-none"
+          />
+        </div>
+
+        <Separator className="mx-8 my-5" style={{ width: "auto" }} />
+
+        <div className="px-8 pb-8">
+          <textarea
+            value={body}
+            onChange={(e) => { setBody(e.target.value); setDirty(true); }}
+            placeholder="Write your entry…"
+            rows={18}
+            className="w-full bg-transparent border-none p-0 text-base leading-relaxed text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-0 focus:shadow-none resize-none"
+          />
+        </div>
+      </div>
+
+      {/* ── Trackers ── */}
+      <div className="bg-card border border-border rounded-xl shadow-sm px-6 py-5">
+        <TrackerInputs ref={trackersRef} date={date} />
+      </div>
+
+      {/* ── Photos ── */}
+      <div className="bg-card border border-border rounded-xl shadow-sm px-6 py-5">
+        <AttachmentGallery date={date} entryExists={exists} />
+      </div>
+
+      {/* ── Error ── */}
+      {error && <ErrorState message={error} />}
+
+      {/* ── Save action ── */}
+      <div className="flex items-center justify-end gap-3 pb-2">
+        {dirty && (
+          <span className="text-xs text-muted-foreground">Unsaved changes</span>
+        )}
+        <Button onClick={handleSave} disabled={saving} className="gap-2">
+          <Save className="w-4 h-4" />
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
     </div>
   );
 }

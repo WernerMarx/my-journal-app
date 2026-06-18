@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useBlocker, useNavigate, useParams } from "react-router-dom";
+import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import EntryEditor from "../components/EntryEditor";
 import { addDays, todayISO } from "../api/entries";
 
 /**
- * Write page — today's entry by default, or any day via `/write/:date`. A
- * date-picker header with prev/next arrows navigates between days; an
- * unsaved-changes guard (in-app via useBlocker, plus a beforeunload handler for
- * tab close/refresh) warns before edits are lost.
+ * Write page — today's entry by default, or any day via `/write/:date`.
+ * All navigation/blocker/beforeunload logic is unchanged; only the header
+ * date-picker row has been restyled.
  */
 export default function Write() {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export default function Write() {
   const date = dateParam || today;
   const [dirty, setDirty] = useState(false);
 
-  // Block in-app navigation (including switching days) while edits are pending.
+  // Block in-app navigation while edits are pending.
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       dirty && currentLocation.pathname !== nextLocation.pathname,
@@ -34,10 +34,7 @@ export default function Write() {
   // Warn on tab close / refresh while edits are pending.
   useEffect(() => {
     if (!dirty) return;
-    const handler = (e) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
+    const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
@@ -46,25 +43,46 @@ export default function Write() {
     navigate(iso === today ? "/write" : `/write/${iso}`);
   }
 
-  const arrow = { padding: "6px 12px", fontSize: 16, lineHeight: 1 };
-
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <button style={arrow} onClick={() => goToDate(addDays(date, -1))} title="Previous day">
-          ←
+    <div className="space-y-6">
+      {/* ── Date navigation ── */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => goToDate(addDays(date, -1))}
+          title="Previous day"
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
         </button>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => e.target.value && goToDate(e.target.value)}
-          style={{ padding: 6 }}
-        />
-        <button style={arrow} onClick={() => goToDate(addDays(date, 1))} title="Next day">
-          →
+
+        {/* Custom-styled date trigger — invisible native input sits on top */}
+        <div className="relative">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card text-sm font-medium text-foreground hover:bg-secondary transition-colors select-none">
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+            {formatDisplayDate(date)}
+          </div>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => e.target.value && goToDate(e.target.value)}
+            aria-label="Select date"
+            className="absolute inset-0 w-full opacity-0 cursor-pointer z-10"
+          />
+        </div>
+
+        <button
+          onClick={() => goToDate(addDays(date, 1))}
+          title="Next day"
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+        >
+          <ChevronRight className="w-4 h-4" />
         </button>
+
         {date !== today && (
-          <button style={{ padding: "6px 12px" }} onClick={() => goToDate(today)}>
+          <button
+            onClick={() => goToDate(today)}
+            className="ml-1 text-xs font-medium text-primary hover:text-primary/80 px-2.5 py-1.5 rounded-md hover:bg-accent transition-colors"
+          >
             Today
           </button>
         )}
@@ -73,4 +91,14 @@ export default function Write() {
       <EntryEditor key={date} date={date} onDirtyChange={setDirty} />
     </div>
   );
+}
+
+function formatDisplayDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }

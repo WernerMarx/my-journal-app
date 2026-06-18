@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight, PenLine } from "lucide-react";
 import AttachmentGallery from "../components/AttachmentGallery";
+import ErrorState from "../components/ui-kit/ErrorState";
+import EmptyState from "../components/ui-kit/EmptyState";
+import { buttonVariants } from "../components/ui/button";
+import { Separator } from "../components/ui/separator";
+import { Skeleton } from "../components/ui/skeleton";
 import { addDays, getEntry } from "../api/entries";
 import { getEntryTrackers } from "../api/trackers";
 import { searchEntries } from "../api/search";
+import { cn } from "../lib/utils";
 
 /**
- * Read-only view of a single day: title, body (whitespace preserved), a compact
- * tracker summary row and the day's photos. "Edit this entry" jumps to the Write
- * page; prev/next arrows skip to the nearest day that actually has an entry.
+ * Read-only view of a single day. All data-fetching and neighbor-resolution
+ * logic is unchanged; only the layout and components have been redesigned.
  */
 export default function EntryDetail() {
   const { date } = useParams();
@@ -31,7 +37,6 @@ export default function EntryDetail() {
       .then((data) => {
         if (!active) return;
         setEntry(data);
-        // Tracker values are best-effort — a failure here shouldn't hide the entry.
         return getEntryTrackers(date)
           .then((items) => active && setTrackers(items))
           .catch(() => active && setTrackers([]));
@@ -43,20 +48,17 @@ export default function EntryDetail() {
       })
       .finally(() => active && setLoading(false));
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [date]);
 
-  // Resolve the nearest existing entry on each side (skips empty days).
+  // Resolve the nearest existing entry on each side.
   const findNeighbors = useCallback(async () => {
     const prevP = searchEntries({ dateTo: addDays(date, -1), sort: "date" }).then(
-      (d) => d.results[0]?.date ?? null, // newest-first → first row is the closest earlier day
+      (d) => d.results[0]?.date ?? null,
     );
     const nextP = searchEntries({ dateFrom: addDays(date, 1), sort: "date" }).then(
       async (d) => {
         if (d.count === 0) return null;
-        // newest-first: the closest later day is the last row of the last page.
         const lastPage = Math.ceil(d.count / 20);
         const pageData =
           lastPage === 1
@@ -75,84 +77,146 @@ export default function EntryDetail() {
     findNeighbors()
       .then((n) => active && setNeighbors(n))
       .catch(() => active && setNeighbors({ prev: null, next: null }));
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [findNeighbors]);
 
-  if (loading) return <p>Loading…</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
+  const filledTrackers = trackers.filter(({ value }) => value != null && value !== "");
 
-  if (notFound) {
+  // ── States ──────────────────────────────────────────────────────────────
+
+  if (loading) {
     return (
-      <div>
-        <NavArrows date={date} neighbors={neighbors} navigate={navigate} />
-        <h1 style={{ marginTop: 0 }}>{date}</h1>
-        <p style={{ color: "#888" }}>No entry written for this day.</p>
-        <Link to={`/write/${date}`}>Write this day →</Link>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-7 w-48" />
+          <Skeleton className="h-8 w-24 rounded-lg" />
+        </div>
+        <div className="bg-card border border-border rounded-xl shadow-sm px-8 py-8 space-y-4">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-7 w-2/3" />
+          <Separator />
+          <div className="space-y-2.5">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-4/6" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  const summary = formatTrackerSummary(trackers);
+  if (error) {
+    return <ErrorState message={error} />;
+  }
+
+  if (notFound) {
+    return (
+      <div className="space-y-6">
+        <NavRow date={date} neighbors={neighbors} navigate={navigate} />
+        <EmptyState
+          icon={PenLine}
+          title={`No entry for ${formatDate(date)}`}
+          description="This day doesn't have an entry yet."
+          action={
+            <Link to={`/write/${date}`} className={buttonVariants()}>
+              Write this day
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
+
+  // ── Entry view ────────────────────────────────────────────────────────────
 
   return (
-    <div>
-      <NavArrows date={date} neighbors={neighbors} navigate={navigate} />
+    <div className="space-y-4">
+      {/* Prev / next + edit action */}
+      <NavRow date={date} neighbors={neighbors} navigate={navigate} />
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h1 style={{ margin: 0 }}>{date}</h1>
-        <Link to={`/write/${date}`}>Edit this entry</Link>
+      {/* Main reading surface */}
+      <div className="bg-card border border-border rounded-xl shadow-sm px-8 py-8">
+        <time className="text-sm font-medium text-muted-foreground">
+          {formatDate(date)}
+        </time>
+
+        <h1 className="font-serif text-2xl font-semibold text-foreground mt-2 mb-4 leading-snug">
+          {entry.title || "(untitled)"}
+        </h1>
+
+        {/* Tracker badges */}
+        {filledTrackers.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-5">
+            {filledTrackers.map(({ tracker, value }) => (
+              <span
+                key={tracker.id}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary text-xs font-medium text-muted-foreground"
+              >
+                {tracker.name}
+                <span className="text-foreground">
+                  {tracker.data_type === "BOOLEAN" ? (value ? "✓" : "✗") : value}
+                </span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <Separator className="mb-6" />
+
+        <p className="text-base leading-[1.8] text-foreground whitespace-pre-wrap">
+          {entry.body}
+        </p>
       </div>
 
-      <h2 style={{ marginBottom: 4 }}>{entry.title || "(untitled)"}</h2>
-
-      {summary && (
-        <p style={{ color: "#555", fontSize: 14, marginTop: 0 }}>{summary}</p>
-      )}
-
-      <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{entry.body}</p>
-
-      <AttachmentGallery date={date} entryExists readOnly />
+      {/* Photos */}
+      <div className="bg-card border border-border rounded-xl shadow-sm px-6 py-5">
+        <AttachmentGallery date={date} entryExists readOnly />
+      </div>
     </div>
   );
 }
 
-/** Prev/next navigation between days that have entries. `undefined` = still
- * resolving (disabled), `null` = no neighbor on that side (hidden). */
-function NavArrows({ neighbors, navigate }) {
-  const arrow = { padding: "4px 12px" };
+/** Prev / next navigation row + Edit button. */
+function NavRow({ date, neighbors, navigate }) {
   return (
-    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-      <button
-        style={arrow}
-        disabled={!neighbors.prev}
-        onClick={() => navigate(`/entries/${neighbors.prev}`)}
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <button
+          disabled={!neighbors.prev}
+          onClick={() => navigate(`/entries/${neighbors.prev}`)}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Prev
+        </button>
+        <span className="text-border text-muted-foreground/30 select-none">|</span>
+        <button
+          disabled={!neighbors.next}
+          onClick={() => navigate(`/entries/${neighbors.next}`)}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          Next
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      <Link
+        to={`/write/${date}`}
+        className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}
       >
-        ← Previous entry
-      </button>
-      <button
-        style={arrow}
-        disabled={!neighbors.next}
-        onClick={() => navigate(`/entries/${neighbors.next}`)}
-      >
-        Next entry →
-      </button>
+        <PenLine className="w-3.5 h-3.5" />
+        Edit entry
+      </Link>
     </div>
   );
 }
 
-/** Build a compact "Mood 7.5 · Worked out ✓ · Diet 8.0" line from tracker
- * values, skipping any that are unset. */
-function formatTrackerSummary(items) {
-  const parts = [];
-  for (const { tracker, value } of items) {
-    if (value == null || value === "") continue;
-    if (tracker.data_type === "BOOLEAN") {
-      parts.push(`${tracker.name} ${value ? "✓" : "✗"}`);
-    } else {
-      parts.push(`${tracker.name} ${value}`);
-    }
-  }
-  return parts.join(" · ");
+function formatDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }

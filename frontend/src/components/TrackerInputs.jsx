@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { Plus, X } from "lucide-react";
 import {
   createTracker,
   getEntryTrackers,
@@ -6,32 +7,19 @@ import {
   setEntryTrackers,
 } from "../api/trackers";
 import TrackerForm from "./TrackerForm";
+import ErrorState from "./ui-kit/ErrorState";
 
 /**
- * Per-day tracker values. A day shows only the trackers that have a value (plus
- * any added during this editing session); each can be removed from the day, and
- * more can be added — either picked from the user's existing trackers or created
- * on the spot.
- *
- * The parent owns the save flow: it must ensure the entry exists (the values
- * endpoint 404s otherwise), then call the exposed `save()`. Only the currently
- * shown trackers are sent; anything removed/omitted is cleared server-side.
- *
- * Each tracker renders by `data_type`:
- *   BOOLEAN → checkbox (definite yes/no)   OPTION → select
- *   INTEGER / FLOAT → number input (empty = unset, bounds from config)
- *   TEXT → text input
+ * Per-day tracker values. All state management and API logic is unchanged;
+ * only the layout and widget styling have been redesigned.
  */
 const TrackerInputs = forwardRef(function TrackerInputs({ date }, ref) {
-  // all active tracker definitions (used by the "add existing" picker)
   const [allTrackers, setAllTrackers] = useState([]);
-  // ids of trackers currently displayed for this day, in order
   const [shownIds, setShownIds] = useState([]);
-  // { [trackerId]: editable value }
   const [values, setValues] = useState({});
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState(false); // add panel open?
-  const [creating, setCreating] = useState(false); // create-on-the-spot form open?
+  const [adding, setAdding] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -39,9 +27,6 @@ const TrackerInputs = forwardRef(function TrackerInputs({ date }, ref) {
     setLoading(true);
     setError(null);
 
-    // The entry-trackers endpoint returns definitions + values when the entry
-    // exists; on 404 (no entry yet) fall back to bare definitions so we can
-    // still render an add control for a brand-new day.
     getEntryTrackers(date)
       .catch((err) => {
         if (err.response?.status === 404) {
@@ -55,7 +40,6 @@ const TrackerInputs = forwardRef(function TrackerInputs({ date }, ref) {
         if (!active) return;
         setAllTrackers(loaded.map((i) => i.tracker));
         setValues(Object.fromEntries(loaded.map((i) => [i.tracker.id, i.value ?? ""])));
-        // Show only the trackers that already have a value for this day.
         setShownIds(loaded.filter((i) => i.value != null).map((i) => i.tracker.id));
         setAdding(false);
         setCreating(false);
@@ -67,14 +51,10 @@ const TrackerInputs = forwardRef(function TrackerInputs({ date }, ref) {
       })
       .finally(() => active && setLoading(false));
 
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [date]);
 
   useImperativeHandle(ref, () => ({
-    /** PUT the currently shown trackers' values for this day. Removed/omitted
-     * trackers are cleared server-side. Caller must ensure the entry exists. */
     async save() {
       const byId = Object.fromEntries(allTrackers.map((t) => [t.id, t]));
       const payload = shownIds
@@ -119,7 +99,7 @@ const TrackerInputs = forwardRef(function TrackerInputs({ date }, ref) {
           ? Object.values(detail).flat().join(" ")
           : "Could not create that tracker.",
       );
-      throw err; // keep the create form open on failure
+      throw err;
     }
   }
 
@@ -130,91 +110,106 @@ const TrackerInputs = forwardRef(function TrackerInputs({ date }, ref) {
   const available = allTrackers.filter((t) => !shownIds.includes(t.id));
 
   return (
-    <fieldset style={{ marginTop: 16, border: "1px solid #ddd", borderRadius: 4, padding: 12 }}>
-      <legend style={{ color: "#555", padding: "0 6px" }}>Trackers</legend>
+    <div>
+      {/* Section header */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground">Trackers</h3>
+        {!adding && !creating && (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            Add
+          </button>
+        )}
+      </div>
 
-      {error && <p style={{ color: "red", marginTop: 0 }}>{error}</p>}
+      {error && <ErrorState message={error} className="mb-3" />}
 
-      <div style={{ display: "grid", gap: 10 }}>
+      {/* Tracker rows */}
+      <div className="space-y-2">
         {shown.map((tracker) => (
-          <div key={tracker.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ flex: "0 0 140px", color: "#333" }}>{tracker.name}</span>
-            {renderWidget(tracker, values[tracker.id], (v) => setValue(tracker.id, v))}
+          <div key={tracker.id} className="flex items-center gap-3 py-1">
+            <span className="text-sm text-muted-foreground w-32 shrink-0 truncate">
+              {tracker.name}
+            </span>
+            <div className="flex-1">
+              {renderWidget(tracker, values[tracker.id], (v) => setValue(tracker.id, v))}
+            </div>
             <button
               type="button"
               onClick={() => removeFromDay(tracker.id)}
               title={`Remove ${tracker.name} from this day`}
               aria-label={`Remove ${tracker.name} from this day`}
-              style={{ marginLeft: "auto", color: "#c0392b", border: "none", background: "none", cursor: "pointer", fontSize: 16 }}
+              className="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
         ))}
-        {shown.length === 0 && !adding && (
-          <p style={{ color: "#999", margin: 0 }}>No trackers for this day yet.</p>
+
+        {shown.length === 0 && !adding && !creating && (
+          <p className="text-sm text-muted-foreground py-0.5">
+            No trackers for this day yet.
+          </p>
         )}
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        {!adding && !creating && (
-          <button type="button" onClick={() => setAdding(true)} style={{ padding: "6px 14px" }}>
-            + Add tracker
+      {/* Add existing picker */}
+      {adding && !creating && (
+        <div className="flex items-center gap-2 mt-4 flex-wrap">
+          {available.length > 0 ? (
+            <select
+              defaultValue=""
+              onChange={(e) => addExisting(e.target.value)}
+              className="h-8 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="" disabled>Choose a tracker…</option>
+              {available.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          ) : (
+            <span className="text-sm text-muted-foreground">All trackers already shown.</span>
+          )}
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="text-xs font-medium text-primary hover:text-primary/80 px-2.5 py-1.5 rounded-md hover:bg-accent transition-colors"
+          >
+            Create new
           </button>
-        )}
+          <button
+            type="button"
+            onClick={() => setAdding(false)}
+            className="text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-md hover:bg-secondary transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
-        {adding && !creating && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            {available.length > 0 ? (
-              <select
-                defaultValue=""
-                onChange={(e) => addExisting(e.target.value)}
-                style={{ padding: 6 }}
-              >
-                <option value="" disabled>
-                  Choose an existing tracker…
-                </option>
-                {available.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <span style={{ color: "#999" }}>All your trackers are already shown.</span>
-            )}
-            <button type="button" onClick={() => setCreating(true)} style={{ padding: "6px 14px" }}>
-              Create new
-            </button>
-            <button type="button" onClick={() => setAdding(false)} style={{ padding: "6px 14px" }}>
-              Cancel
-            </button>
-          </div>
-        )}
-
-        {creating && (
-          <div style={{ marginTop: 4 }}>
-            <p style={{ fontSize: 13, color: "#777", margin: "0 0 8px" }}>
-              New trackers are permanent — they appear in Manage Trackers and on other days too.
-            </p>
-            <TrackerForm
-              submitLabel="Create & add"
-              onSubmit={handleCreate}
-              onCancel={() => {
-                setCreating(false);
-                setError(null);
-              }}
-            />
-          </div>
-        )}
-      </div>
-    </fieldset>
+      {/* Create-on-the-spot form */}
+      {creating && (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            New trackers appear on all days and in Manage Trackers.
+          </p>
+          <TrackerForm
+            submitLabel="Create & add"
+            onSubmit={handleCreate}
+            onCancel={() => { setCreating(false); setError(null); }}
+          />
+        </div>
+      )}
+    </div>
   );
 });
 
 function renderWidget(tracker, value, onChange) {
   const { data_type: type, config = {} } = tracker;
-  const field = { padding: 6, boxSizing: "border-box" };
 
   if (type === "BOOLEAN") {
     return (
@@ -222,27 +217,29 @@ function renderWidget(tracker, value, onChange) {
         type="checkbox"
         checked={value === true}
         onChange={(e) => onChange(e.target.checked)}
+        className="w-4 h-4 rounded cursor-pointer accent-primary"
       />
     );
   }
 
   if (type === "OPTION") {
     return (
-      <select value={value ?? ""} onChange={(e) => onChange(e.target.value)} style={field}>
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
         <option value="">—</option>
         {(config.options || []).map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
+          <option key={opt} value={opt}>{opt}</option>
         ))}
       </select>
     );
   }
 
   if (type === "INTEGER" || type === "FLOAT") {
-    const hasBounds = config.min != null && config.max != null;
     return (
-      <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="flex items-center gap-2">
         <input
           type="number"
           value={value ?? ""}
@@ -250,14 +247,14 @@ function renderWidget(tracker, value, onChange) {
           max={config.max ?? undefined}
           step={type === "INTEGER" ? 1 : "any"}
           onChange={(e) => onChange(e.target.value)}
-          style={{ ...field, width: 120 }}
+          className="w-24 h-8 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
-        {hasBounds && (
-          <span style={{ color: "#999", fontSize: 13 }}>
-            ({config.min}–{config.max})
+        {config.min != null && config.max != null && (
+          <span className="text-xs text-muted-foreground">
+            {config.min}–{config.max}
           </span>
         )}
-      </span>
+      </div>
     );
   }
 
@@ -267,13 +264,11 @@ function renderWidget(tracker, value, onChange) {
       type="text"
       value={value ?? ""}
       onChange={(e) => onChange(e.target.value)}
-      style={{ ...field, flex: 1 }}
+      className="w-full h-8 rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
     />
   );
 }
 
-/** Coerce a widget's editable value into the typed value the API expects,
- * mapping empty/blank to null so the server clears that tracker. */
 function normalize(type, value) {
   if (type === "BOOLEAN") return value === true;
   if (value === "" || value == null) return null;
@@ -285,7 +280,7 @@ function normalize(type, value) {
     const n = parseFloat(value);
     return Number.isNaN(n) ? null : n;
   }
-  return value; // TEXT, OPTION
+  return value;
 }
 
 export default TrackerInputs;

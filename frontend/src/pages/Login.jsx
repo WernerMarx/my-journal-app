@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { BookOpen } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 
 export default function Login() {
   const { login } = useAuth();
@@ -25,40 +28,61 @@ export default function Login() {
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: "10vh auto", fontFamily: "sans-serif" }}>
-      <h1 style={{ marginBottom: 24 }}>Journal</h1>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 12 }}>
-          <label htmlFor="email">Email</label>
-          <br />
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            style={{ width: "100%", padding: 8, marginTop: 4, boxSizing: "border-box" }}
-          />
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm">
+        {/* Brand */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 mb-4">
+            <BookOpen className="w-6 h-6 text-primary" />
+          </div>
+          <h1 className="font-serif text-2xl font-semibold text-foreground">Journal</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Your private space to write and reflect
+          </p>
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="password">Password</label>
-          <br />
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            style={{ width: "100%", padding: 8, marginTop: 4, boxSizing: "border-box" }}
-          />
+
+        {/* Form card */}
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground">
+                Email
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                Password
+              </label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Signing in…" : "Sign in"}
+            </Button>
+          </form>
         </div>
-        {error && <p style={{ color: "red", marginBottom: 12 }}>{error}</p>}
-        <button type="submit" disabled={loading} style={{ width: "100%", padding: 10 }}>
-          {loading ? "Signing in…" : "Sign in"}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }

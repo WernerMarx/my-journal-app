@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
+import { PlusCircle } from "lucide-react";
 import { createTracker, deleteTracker, listTrackers, updateTracker } from "../api/trackers";
 import TrackerForm from "../components/TrackerForm";
+import PageHeader from "../components/layout/PageHeader";
+import ErrorState from "../components/ui-kit/ErrorState";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Skeleton } from "../components/ui/skeleton";
 
 /**
  * Manage tracker definitions: list active trackers (system + custom), create
@@ -15,7 +21,8 @@ export default function ManageTrackers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [createKey, setCreateKey] = useState(0); // bump to reset the create form
+  const [showCreate, setShowCreate] = useState(false);
+  const [createKey, setCreateKey] = useState(0);
 
   function reload() {
     setLoading(true);
@@ -59,7 +66,8 @@ export default function ManageTrackers() {
     setError(null);
     try {
       await createTracker(payload);
-      setCreateKey((k) => k + 1); // reset the create form
+      setCreateKey((k) => k + 1);
+      setShowCreate(false);
       reload();
     } catch (err) {
       setError(errorText(err, "Could not create that tracker."));
@@ -69,17 +77,58 @@ export default function ManageTrackers() {
 
   return (
     <div>
-      <h1 style={{ marginTop: 0 }}>Trackers</h1>
+      <PageHeader
+        title="Trackers"
+        subtitle="Manage your daily tracking fields"
+        action={
+          !showCreate && (
+            <Button onClick={() => setShowCreate(true)} className="gap-2">
+              <PlusCircle className="w-4 h-4" />
+              Add tracker
+            </Button>
+          )
+        }
+      />
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <ErrorState message={error} className="mb-5" />}
 
+      {/* ── Create form ── */}
+      {showCreate && (
+        <div className="mb-8">
+          <p className="text-sm font-medium text-foreground mb-3">New tracker</p>
+          <TrackerForm
+            key={createKey}
+            submitLabel="Add tracker"
+            onSubmit={handleCreate}
+            onCancel={() => setShowCreate(false)}
+          />
+        </div>
+      )}
+
+      {/* ── Tracker list ── */}
       {loading ? (
-        <p>Loading…</p>
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between px-4 py-3 bg-card border border-border rounded-xl"
+            >
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-16 rounded-md" />
+                <Skeleton className="h-8 w-20 rounded-md" />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, marginTop: 20 }}>
+        <div className="space-y-2">
           {trackers.map((t) =>
             editingId === t.id ? (
-              <li key={t.id} style={{ marginBottom: 8 }}>
+              <div key={t.id}>
                 <TrackerForm
                   initial={t}
                   lockKeyType
@@ -87,47 +136,48 @@ export default function ManageTrackers() {
                   onSubmit={(payload) => handleEditSave(t.id, payload)}
                   onCancel={() => setEditingId(null)}
                 />
-              </li>
+              </div>
             ) : (
-              <li
+              <div
                 key={t.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "10px 12px",
-                  border: "1px solid #ddd",
-                  borderRadius: 4,
-                  marginBottom: 8,
-                }}
+                className="flex items-center justify-between gap-4 px-4 py-3 bg-card border border-border rounded-xl"
               >
-                <span>
-                  <strong>{t.name}</strong>{" "}
-                  <span style={{ color: "#999", fontSize: 13 }}>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm text-foreground">{t.name}</span>
+                    {t.is_system && (
+                      <Badge variant="secondary" className="text-[11px] py-0 h-5">
+                        default
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {t.key} · {t.data_type}
-                  </span>
-                  {t.is_system && (
-                    <span style={{ marginLeft: 8, color: "#888", fontSize: 12 }}>(default)</span>
-                  )}
-                </span>
-                <span style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => setEditingId(t.id)}>Edit</button>
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button size="sm" variant="outline" onClick={() => setEditingId(t.id)}>
+                    Edit
+                  </Button>
                   {t.is_system ? (
-                    <span style={{ color: "#bbb", fontSize: 13, alignSelf: "center" }}>locked</span>
+                    <span className="text-xs text-muted-foreground px-2">locked</span>
                   ) : (
-                    <button onClick={() => handleDelete(t)}>Archive</button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete(t)}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                    >
+                      Archive
+                    </Button>
                   )}
-                </span>
-              </li>
+                </div>
+              </div>
             ),
           )}
-        </ul>
+        </div>
       )}
-
-      <div style={{ marginTop: 24 }}>
-        <h3 style={{ marginTop: 0 }}>Add a tracker</h3>
-        <TrackerForm key={createKey} submitLabel="Add tracker" onSubmit={handleCreate} />
-      </div>
     </div>
   );
 }

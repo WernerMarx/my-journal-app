@@ -120,6 +120,7 @@ token comes from the login/refresh response body.
 - **P3** ✅ — search (wildcard, date range, sort) — *core feature*
 - **P4** ✅ — attachments (images first, compressed via Celery/Pillow)
 - **P5** ✅ — frontend experience (Write page, Browse/list page, Entry detail page, nav bar)
+- **P5.5** ✅ — frontend styling (plain-CSS design tokens; pastel theme; in-place tracker editing + per-entry add/remove)
 - **P6** — dashboard (mood calendar, entry counts, landing page)
 - **P7** — security & production hardening (MFA, lockout, throttling, Nginx, encrypted backups + tested restore, monitoring)
 

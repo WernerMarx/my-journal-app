@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { DATA_TYPES } from "../api/trackers";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { cn } from "../lib/utils";
 
 /**
  * Shared form for creating or editing a tracker definition. Builds the typed
@@ -62,42 +65,49 @@ export default function TrackerForm({
     }
   }
 
-  const field = { padding: 6, boxSizing: "border-box" };
-  const lockedField = { ...field, background: "#f3f3f3", color: "#777" };
+  const selectClass =
+    "h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
     <form
       onSubmit={handleSubmit}
-      style={{ padding: 16, border: "1px solid #ddd", borderRadius: 4 }}
+      className="bg-card border border-border rounded-xl shadow-sm p-5"
     >
-      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
-        <label style={{ display: "grid", gap: 4 }}>
-          <span style={{ fontSize: 13, color: "#555" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Key */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
             Key (stable id, e.g. sleep){lockKeyType && " — locked"}
-          </span>
-          <input
+          </label>
+          <Input
             value={key}
             onChange={(e) => setKey(e.target.value)}
             required
             disabled={lockKeyType}
             pattern="[-a-zA-Z0-9_]+"
             title="Letters, numbers, hyphens and underscores only"
-            style={lockKeyType ? lockedField : field}
+            className={cn(lockKeyType && "bg-muted text-muted-foreground")}
           />
-        </label>
-        <label style={{ display: "grid", gap: 4 }}>
-          <span style={{ fontSize: 13, color: "#555" }}>Name (display label)</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} required style={field} />
-        </label>
-        <label style={{ display: "grid", gap: 4 }}>
-          <span style={{ fontSize: 13, color: "#555" }}>
+        </div>
+
+        {/* Name */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            Name (display label)
+          </label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+
+        {/* Type */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
             Type{lockKeyType && " — locked"}
-          </span>
+          </label>
           <select
             value={dataType}
             onChange={(e) => setDataType(e.target.value)}
             disabled={lockKeyType}
-            style={lockKeyType ? lockedField : field}
+            className={cn(selectClass, lockKeyType && "bg-muted text-muted-foreground")}
           >
             {DATA_TYPES.map((t) => (
               <option key={t} value={t}>
@@ -105,43 +115,46 @@ export default function TrackerForm({
               </option>
             ))}
           </select>
-        </label>
+        </div>
 
+        {/* OPTION: comma-separated list */}
         {isOption && (
-          <label style={{ display: "grid", gap: 4 }}>
-            <span style={{ fontSize: 13, color: "#555" }}>Options (comma-separated)</span>
-            <input
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-muted-foreground">
+              Options (comma-separated)
+            </label>
+            <Input
               value={options}
               onChange={(e) => setOptions(e.target.value)}
               placeholder="good, neutral, bad"
               required
-              style={field}
             />
-          </label>
+          </div>
         )}
 
+        {/* NUMERIC: optional bounds */}
         {isNumeric && (
           <>
-            <label style={{ display: "grid", gap: 4 }}>
-              <span style={{ fontSize: 13, color: "#555" }}>Min (optional)</span>
-              <input type="number" value={min} onChange={(e) => setMin(e.target.value)} style={field} />
-            </label>
-            <label style={{ display: "grid", gap: 4 }}>
-              <span style={{ fontSize: 13, color: "#555" }}>Max (optional)</span>
-              <input type="number" value={max} onChange={(e) => setMax(e.target.value)} style={field} />
-            </label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Min (optional)</label>
+              <Input type="number" value={min} onChange={(e) => setMin(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Max (optional)</label>
+              <Input type="number" value={max} onChange={(e) => setMax(e.target.value)} />
+            </div>
           </>
         )}
       </div>
 
-      <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-        <button type="submit" disabled={submitting} style={{ padding: "8px 20px" }}>
+      <div className="flex items-center gap-2 mt-5">
+        <Button type="submit" disabled={submitting}>
           {submitting ? "Saving…" : submitLabel}
-        </button>
+        </Button>
         {onCancel && (
-          <button type="button" onClick={onCancel} style={{ padding: "8px 20px" }}>
+          <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         )}
       </div>
     </form>

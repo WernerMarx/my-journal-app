@@ -1,0 +1,212 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+/* ==========================================================================
+   Map runtime CSS variables → Tailwind utility classes.
+   Components use bg-background, text-foreground, etc.; the values are defined
+   in :root below so they can be overridden for dark mode later.
+   ========================================================================== */
+
+@theme inline {
+  /* Semantic colour utilities */
+  --color-background:         var(--background);
+  --color-foreground:         var(--foreground);
+  --color-card:               var(--card);
+  --color-card-foreground:    var(--card-foreground);
+  --color-popover:            var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary:            var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:          var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:              var(--muted);
+  --color-muted-foreground:   var(--muted-foreground);
+  --color-accent:             var(--accent);
+  --color-accent-foreground:  var(--accent-foreground);
+  --color-destructive:        var(--destructive);
+  --color-border:             var(--border);
+  --color-input:              var(--input);
+  --color-ring:               var(--ring);
+
+  /* Journal palette companions */
+  --color-sage:               var(--sage);
+  --color-blush:              var(--blush);
+  --color-amber-warm:         var(--amber-warm);
+
+  /* Border-radius scale */
+  --radius-sm:  8px;
+  --radius-md:  10px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+
+  /* Font stacks */
+  --font-sans:   system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-serif:  "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, Cambria, serif;
+}
+
+/* ==========================================================================
+   Design tokens — single source of truth.
+   Change values here; dark mode will add a second :root block later.
+   ========================================================================== */
+
+:root {
+  /* --- Tailwind / shadcn semantic tokens --- */
+  --background:               #f7f5f1;   /* warm paper */
+  --foreground:               #3b3833;
+  --card:                     #ffffff;
+  --card-foreground:          #3b3833;
+  --popover:                  #ffffff;
+  --popover-foreground:       #3b3833;
+  --primary:                  #557099;
+  --primary-foreground:       #ffffff;
+  --secondary:                #f1ede7;
+  --secondary-foreground:     #3b3833;
+  --muted:                    #f1ede7;
+  --muted-foreground:         #908a80;
+  --accent:                   #e9eff6;   /* soft dusty-blue fill */
+  --accent-foreground:        #455e82;
+  --destructive:              #b3596b;
+  --border:                   #e6e0d6;
+  --input:                    #d8d0c4;
+  --ring:                     #6f93bd;
+
+  /* --- Journal palette companions --- */
+  --sage:                     #9cc3a8;
+  --blush:                    #e6b8c2;
+  --amber-warm:               #e8c79a;
+
+  /* --- Shadows --- */
+  --shadow-sm:  0 1px 2px rgba(50, 45, 38, 0.05);
+  --shadow:     0 2px 10px rgba(50, 45, 38, 0.07);
+  --shadow-md:  0 8px 24px rgba(50, 45, 38, 0.1);
+  --focus-ring: 0 0 0 3px rgba(111, 147, 189, 0.3);
+}
+
+/* ==========================================================================
+   Base element styles — inside @layer base so Tailwind utilities can
+   override them on shadcn components while still applying to legacy elements.
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    color: var(--foreground);
+    line-height: 1.25;
+    font-weight: 600;
+  }
+
+  h1 { font-size: 1.7rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.08rem; }
+
+  a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+
+  /* --- Forms ------------------------------------------------------------ */
+
+  input,
+  select,
+  textarea,
+  button {
+    font-family: inherit;
+    font-size: 1rem;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="search"],
+  select,
+  textarea {
+    padding: 0.5rem 0.65rem;
+    color: var(--foreground);
+    background: var(--card);
+    border: 1px solid var(--input);
+    border-radius: var(--radius-sm);
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: var(--focus-ring);
+  }
+
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    background: var(--secondary);
+    color: var(--muted-foreground);
+    cursor: not-allowed;
+  }
+
+  textarea {
+    resize: vertical;
+    line-height: 1.6;
+  }
+
+  input[type="checkbox"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--primary);
+  }
+
+  label {
+    color: var(--foreground);
+  }
+
+  fieldset {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.1rem;
+    background: var(--card);
+  }
+  legend {
+    color: var(--muted-foreground);
+    font-weight: 600;
+    padding: 0 0.4rem;
+  }
+
+  /* --- Buttons ---------------------------------------------------------- */
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

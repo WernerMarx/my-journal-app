@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { ImagePlus, X } from "lucide-react";
 import { deleteAttachment, listAttachments, uploadAttachment } from "../api/attachments";
+import ErrorState from "./ui-kit/ErrorState";
 
 /**
- * Displays the image gallery for a given entry date and provides an upload button.
- * Only active when the entry already exists (entryExists=true); otherwise shows a hint.
+ * Photo gallery for a given entry date. All upload/delete API logic is
+ * unchanged; only the layout has been redesigned.
  */
 export default function AttachmentGallery({ date, entryExists, readOnly = false }) {
   const [attachments, setAttachments] = useState([]);
@@ -16,7 +18,7 @@ export default function AttachmentGallery({ date, entryExists, readOnly = false 
     let active = true;
     listAttachments(date)
       .then((data) => { if (active) setAttachments(data); })
-      .catch(() => { if (active) setError("Could not load attachments."); });
+      .catch(() => { if (active) setError("Could not load photos."); });
     return () => { active = false; };
   }, [date, entryExists]);
 
@@ -45,104 +47,85 @@ export default function AttachmentGallery({ date, entryExists, readOnly = false 
       await deleteAttachment(date, att.id);
       setAttachments((prev) => prev.filter((a) => a.id !== att.id));
     } catch {
-      setError("Could not delete attachment.");
+      setError("Could not delete photo.");
     }
   }
 
-  const container = { marginTop: 16 };
-  const grid = {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-  };
-  const card = {
-    position: "relative",
-    width: 100,
-    height: 100,
-    borderRadius: 4,
-    overflow: "hidden",
-    background: "#f0f0f0",
-    border: "1px solid #ddd",
-  };
-  const img = { width: "100%", height: "100%", objectFit: "cover" };
-  const deleteBtn = {
-    position: "absolute",
-    top: 2,
-    right: 2,
-    background: "rgba(0,0,0,0.5)",
-    color: "#fff",
-    border: "none",
-    borderRadius: 3,
-    cursor: "pointer",
-    fontSize: 11,
-    lineHeight: 1,
-    padding: "2px 4px",
-  };
-  const processing = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: "100%",
-    height: "100%",
-    fontSize: 11,
-    color: "#888",
-  };
+  // ── Not yet saved ─────────────────────────────────────────────────────────
 
   if (!entryExists) {
     if (readOnly) return null;
     return (
-      <p style={{ marginTop: 12, color: "#aaa", fontSize: 13 }}>
-        Save the entry first to add photos.
-      </p>
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-1">Photos</h3>
+        <p className="text-sm text-muted-foreground">Save the entry first to add photos.</p>
+      </div>
     );
   }
 
+  // ── Gallery ───────────────────────────────────────────────────────────────
+
   return (
-    <div style={container}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <strong style={{ fontSize: 14 }}>Photos</strong>
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground">Photos</h3>
         {!readOnly && (
           <>
             <button
               onClick={() => inputRef.current?.click()}
               disabled={uploading}
-              style={{ padding: "3px 10px", fontSize: 13 }}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
             >
-              {uploading ? "Uploading…" : "+ Add"}
+              <ImagePlus className="w-3.5 h-3.5" />
+              {uploading ? "Uploading…" : "Add photo"}
             </button>
             <input
               ref={inputRef}
               type="file"
               accept="image/jpeg,image/png,image/gif,image/webp"
-              style={{ display: "none" }}
+              className="hidden"
               onChange={handleFileChange}
             />
           </>
         )}
       </div>
 
-      {error && <p style={{ color: "red", fontSize: 13, marginTop: 4 }}>{error}</p>}
+      {error && <ErrorState message={error} className="mb-3" />}
 
-      {attachments.length > 0 && (
-        <div style={grid}>
+      {/* Photo grid */}
+      {attachments.length > 0 ? (
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
           {attachments.map((att) => (
-            <div key={att.id} style={card}>
+            <div
+              key={att.id}
+              className="group relative aspect-square rounded-lg overflow-hidden bg-secondary border border-border"
+            >
               {att.is_processed && att.thumbnail_url ? (
-                <img src={att.thumbnail_url} alt="" style={img} />
+                <img src={att.thumbnail_url} alt="" className="w-full h-full object-cover" />
               ) : att.is_processed && att.file_url ? (
-                <img src={att.file_url} alt="" style={img} />
+                <img src={att.file_url} alt="" className="w-full h-full object-cover" />
               ) : (
-                <div style={processing}>processing…</div>
+                <div className="flex items-center justify-center w-full h-full text-xs text-muted-foreground">
+                  processing…
+                </div>
               )}
               {!readOnly && (
-                <button style={deleteBtn} onClick={() => handleDelete(att)} title="Remove">
-                  ✕
+                <button
+                  onClick={() => handleDelete(att)}
+                  title="Remove photo"
+                  className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity text-white"
+                >
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
           ))}
         </div>
+      ) : (
+        !readOnly && (
+          <p className="text-sm text-muted-foreground">No photos yet.</p>
+        )
       )}
     </div>
   );
