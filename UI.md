@@ -160,6 +160,7 @@ Opinionated, reusable page-level states.
 | `Browse.jsx` | `/browse` | Search form + paginated entry cards |
 | `EntryDetail.jsx` | `/entries/:date` | Read-only view; resolves prev/next neighbors |
 | `ManageTrackers.jsx` | `/trackers` | CRUD tracker definitions |
+| `Dashboard.jsx` | `/dashboard` | Landing page: mood calendar, entry counts, quick links — P6 |
 
 ---
 

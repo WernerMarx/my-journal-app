@@ -8,6 +8,7 @@ import {
 import { useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 import Write from "./pages/Write";
 import Browse from "./pages/Browse";
 import EntryDetail from "./pages/EntryDetail";
@@ -31,7 +32,8 @@ const router = createBrowserRouter(
     <Route>
       <Route path="/login" element={<Login />} />
       <Route element={<PrivateLayout />}>
-        <Route path="/" element={<Navigate to="/write" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/write" element={<Write />} />
         <Route path="/write/:date" element={<Write />} />
         <Route path="/browse" element={<Browse />} />

@@ -106,7 +106,7 @@ Versioned under `/api/v1/`.
 | PUT | `/entries/{date}/trackers/` | set tracker values for a day | P2 |
 | GET | `/search/?q=...&date_from=&date_to=&sort=` | wildcard search + range/sort | P3 |
 | GET/POST/DELETE | `/entries/{date}/attachments/` | media per day | P4 |
-| GET | `/dashboard/` | counts, last entry, month mood map | P5 |
+| GET | `/dashboard/` | counts, last entry, month mood map | P6 |
 | GET | `/api/schema/` · `/api/docs/` · `/api/redoc/` | OpenAPI schema · Swagger · Redoc | now |
 
 Authenticate API requests with `Authorization: Bearer <access_token>`; the access
@@ -120,7 +120,8 @@ token comes from the login/refresh response body.
 - **P3** ✅ — search (wildcard, date range, sort) — *core feature*
 - **P4** ✅ — attachments (images first, compressed via Celery/Pillow)
 - **P5** ✅ — frontend experience (Write page, Browse/list page, Entry detail page, nav bar)
-- **P5.5** ✅ — frontend styling (plain-CSS design tokens; pastel theme; in-place tracker editing + per-entry add/remove)
+- **P5.5** ✅ — frontend styling (plain-CSS design tokens; superseded by P5.6)
+- **P5.6** ✅ — modern UI redesign (Tailwind CSS v4 + shadcn/ui; warm-paper design system)
 - **P6** — dashboard (mood calendar, entry counts, landing page)
 - **P7** — security & production hardening (MFA, lockout, throttling, Nginx, encrypted backups + tested restore, monitoring)
 

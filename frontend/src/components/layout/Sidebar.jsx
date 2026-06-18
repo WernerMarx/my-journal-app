@@ -1,12 +1,13 @@
 import { NavLink } from "react-router-dom";
-import { BookOpen, BarChart2, PenLine, LogOut, X } from "lucide-react";
+import { BookOpen, BarChart2, PenLine, LogOut, X, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { to: "/write",    icon: PenLine,   label: "Write"    },
-  { to: "/browse",   icon: BookOpen,  label: "Browse"   },
-  { to: "/trackers", icon: BarChart2, label: "Trackers" },
+  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/write",     icon: PenLine,         label: "Write"     },
+  { to: "/browse",    icon: BookOpen,         label: "Browse"    },
+  { to: "/trackers",  icon: BarChart2,        label: "Trackers"  },
 ];
 
 export default function Sidebar({ onClose }) {

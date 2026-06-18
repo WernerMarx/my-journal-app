@@ -7,10 +7,12 @@ from rest_framework import generics, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.journal.models import Entry
 from apps.journal.search import build_search_queryset
 from apps.journal.serializers import EntrySerializer, SearchResultSerializer
+from apps.trackers.models import TrackerValue
 
 
 class EntryViewSet(viewsets.ModelViewSet):
@@ -40,6 +42,82 @@ class EntryViewSet(viewsets.ModelViewSet):
         if entry is None:
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(self.get_serializer(entry).data)
+
+
+class DashboardView(APIView):
+    """GET /dashboard/ — aggregated activity summary for the authenticated user.
+
+    Returns:
+      total_entries           — all-time entry count
+      last_entry_date         — ISO date of the most-recent entry, or null
+      current_month_entry_dates — ISO dates of entries in the current calendar month
+      current_month_moods     — {ISO date: float} for entries with a mood value
+                                this month; locates the mood tracker by its stable
+                                key='mood', never by order or id
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        today = timezone.localdate()
+
+        # Optional month navigation: ?year=2026&month=5
+        try:
+            year = int(request.query_params.get("year", today.year))
+            month = int(request.query_params.get("month", today.month))
+            if not (1 <= month <= 12) or year < 1:
+                raise ValueError
+            month_start = datetime.date(year, month, 1)
+        except (ValueError, OverflowError):
+            return Response(
+                {"detail": "Invalid year or month parameter."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # First day of the following month
+        if month == 12:
+            month_end = datetime.date(year + 1, 1, 1)
+        else:
+            month_end = datetime.date(year, month + 1, 1)
+
+        entries_qs = Entry.objects.filter(user=user)
+
+        total_entries = entries_qs.count()
+
+        last = entries_qs.order_by("-date").values("date").first()
+        last_entry_date = str(last["date"]) if last else None
+
+        this_month_qs = entries_qs.filter(date__gte=month_start, date__lt=month_end)
+
+        current_month_entry_dates = [
+            str(d) for d in this_month_qs.order_by("date").values_list("date", flat=True)
+        ]
+
+        mood_rows = (
+            TrackerValue.objects.filter(
+                entry__user=user,
+                entry__date__gte=month_start,
+                entry__date__lt=month_end,
+                tracker__key="mood",
+                tracker__user=user,
+                value_number__isnull=False,
+            )
+            .select_related("entry")
+            .values("entry__date", "value_number")
+        )
+        current_month_moods = {
+            str(row["entry__date"]): float(row["value_number"]) for row in mood_rows
+        }
+
+        return Response(
+            {
+                "total_entries": total_entries,
+                "last_entry_date": last_entry_date,
+                "current_month_entry_dates": current_month_entry_dates,
+                "current_month_moods": current_month_moods,
+            }
+        )
 
 
 class SearchView(generics.ListAPIView):
